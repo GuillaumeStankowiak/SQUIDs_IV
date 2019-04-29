@@ -12,11 +12,32 @@ jupyter:
     name: python2
 ---
 
+<!-- #region -->
+# Test V(Phi) and IV script
+
+### Collaborators : 
+Alejandro Almela, Guillaume Stankowiak
+
+### Main Goal :  
+This notebook is used to test thes reponses of SQUIDs for the voltage regardinf the flux and allso for the IV curves.
+
+##  ===> Before compiling the code <===
+
+
+###  /!\ You must be in python 2 /!\
+
+- Take the data that you want to test from the qubiccentral system 
+- Be sure to put the write PATH for the directory that includes the data 
+- Download all the mandatory packages and librairies (especially qubicpack.py and satorchy.py)
+- The comments refer to the line just below (most of the time)
+
+<!-- #endregion -->
+
 ```{python}
 # %matplotlib notebook
 # #%matplotlib inline
 from matplotlib import rc
-rc('figure',figsize=(10,5))
+rc('figure',figsize=(10,5)) # this size of window fits for the save fonction
 rc('font',size=12)
 rc('text',usetex=False)
 
@@ -107,23 +128,34 @@ a.read_qubicstudio_dataset(thedir, asic=AsicNum)
 
 ```{python}
 AsicNum = 1
-Min=1./0.2e-6
+# Mutual inductance
+Min=1./0.2e-6 
 for z in range (128):
-    for i in range(9):
+# the first 8 index are too low to induce curves, so we start at 9    
+    for i in range(9): 
         thedir = dirs[i+7]
+# reading the data from qubicpack
         a = qp()
         a.read_qubicstudio_dataset(thedir, asic=AsicNum)
+# Amplitude peak to peak of the sinus
         amp=a.max_bias-a.min_bias
+# offset of the sinus signal (see to do it another way wich is more "real like")
         offset=0.5*(a.max_bias+a.min_bias)
         Vbias=1e-6*(offset+amp*a.bias_phase()/2.)
+# Ind : this allow to avoid the noncoherent points in raw data for the flux
         ind=np.argsort(Vbias)
+# temp is a temporaly variable that will be used after for the filter
         temp = a.timeline(TES=z+1)[ind]*62.5/(70.*100)/(a.nsamples-a.n_masked())-Vsqoffset
+# savitzky golay filter
         filt = sp.signal.savgol_filter(temp, 51, 3) 
+
+### plot parameters ###    
         plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],filt)
         grid()
         xlabel('Flux (in quantum of flux)')
         ylabel('Current ($\mu$V)')
         title('ASIC1, SQUID number %i'%(z+1))
+        
     save("./ASIC1_QUBIC/ASIC1_%i"%(z+1),ext="png",close=True,verbose=True)
 ```
 
