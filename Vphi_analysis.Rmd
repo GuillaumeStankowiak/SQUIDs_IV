@@ -1,0 +1,246 @@
+---
+jupyter:
+  jupytext:
+    text_representation:
+      extension: .Rmd
+      format_name: rmarkdown
+      format_version: '1.1'
+      jupytext_version: 1.1.1
+  kernelspec:
+    display_name: Python 2
+    language: python
+    name: python2
+---
+
+```{python}
+# %matplotlib notebook
+# #%matplotlib inline
+from matplotlib import rc
+rc('figure',figsize=(10,5))
+rc('font',size=12)
+rc('text',usetex=False)
+
+from qubicpack import qubicpack as qp
+#import fibtools as ft
+#import plotters as p
+#import lin_lib as ll
+#import demodulation_lib as dl
+#import satorchipy as stpy
+#from pysimulators import FitsArray
+
+import os,sys
+import numpy as np
+import pandas as pd
+from matplotlib.pyplot import *
+import matplotlib.mlab as mlab
+import scipy.ndimage.filters as f
+import glob
+import string
+import scipy.signal as scsig
+from scipy import interpolate
+import datetime as dt
+import pickle
+
+import matplotlib.pyplot as plt
+import scipy as sp
+```
+
+# Fonctions
+
+```{python}
+def save(path, ext='png', close=True, verbose=True):
+    
+    # Extract the directory and filename from the given path
+    directory = os.path.split(path)[0]
+    filename = "%s.%s" % (os.path.split(path)[1], ext)
+    if directory == '':
+        directory = '.'
+
+    # If the directory does not exist, create it
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    # The final path to save to
+    savepath = os.path.join(directory, filename)
+
+    if verbose:
+        print("Saving figure to '%s'..." % savepath),
+
+    # Actually save the figure
+    plt.savefig(savepath)
+    
+    # Close it
+    if close:
+        plt.close()
+
+    if verbose:
+        print("Done")
+```
+
+## V(Phi) sans feedback
+
+```{python}
+day = '2019-04-23'
+data_dir = '/home/guillaume/Documents/SQUID/'+day+'/'
+#dirs = np.sort(glob.glob(data_dir+'*test_sw*'))
+dirs = np.sort(glob.glob(data_dir+'*bias*'))
+print (dirs)
+print (len(dirs))
+
+labels = []
+for d in dirs:
+    bla = str.split(d,'__')
+    labels.append(bla[1])
+print labels
+```
+
+```{python}
+thedir = dirs[3]
+print(thedir)
+AsicNum = 1
+a = qp()
+a.read_qubicstudio_dataset(thedir, asic=AsicNum)
+
+```
+
+```{python}
+AsicNum = 1
+Min=1./0.2e-6
+for z in range (128):
+    for i in range(9):
+        thedir = dirs[i+7]
+        a = qp()
+        a.read_qubicstudio_dataset(thedir, asic=AsicNum)
+        amp=a.max_bias-a.min_bias
+        offset=0.5*(a.max_bias+a.min_bias)
+        Vbias=1e-6*(offset+amp*a.bias_phase()/2.)
+        ind=np.argsort(Vbias)
+        temp = a.timeline(TES=z+1)[ind]*62.5/(70.*100)/(a.nsamples-a.n_masked())-Vsqoffset
+        filt = sp.signal.savgol_filter(temp, 51, 3) 
+        plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],filt)
+        grid()
+        xlabel('Flux (in quantum of flux)')
+        ylabel('Current ($\mu$V)')
+        title('ASIC1, SQUID number %i'%(z+1))
+    save("./ASIC1_QUBIC/ASIC1_%i"%(z+1),ext="png",close=True,verbose=True)
+```
+
+```{python}
+AsicNum = 1
+z=128
+Min=1./0.2e-6
+
+for i in range(16):
+    thedir = dirs[i]
+    a = qp()
+    a.read_qubicstudio_dataset(thedir, asic=AsicNum)
+    amp=a.max_bias-a.min_bias
+    offset=0.5*(a.max_bias+a.min_bias)
+    Vbias=1e-6*(offset+amp*a.bias_phase()/2.)
+    ind=np.argsort(Vbias)
+    if i == 0:
+        Vsqoffset=np.mean(a.timeline(TES=z)*62.5/(70.*100)/(a.nsamples-a.n_masked()))
+    plot(Vbias[ind]/1.2*Min,a.timeline(TES=z)[ind]*62.5/(70.*100)/(a.nsamples-a.n_masked())-Vsqoffset)
+grid()
+
+```
+
+## V(Phi) feedback
+
+```{python}
+day = '2019-04-24'
+data_dir = '/home/guillaume/Documents/SQUID/'+day+'/'
+#dirs = np.sort(glob.glob(data_dir+'*test_sw*'))
+dirs = np.sort(glob.glob(data_dir+'*bias*'))
+print (dirs)
+print (len(dirs))
+
+labels = []
+for d in dirs:
+    bla = str.split(d,'__')
+    labels.append(bla[1])
+print labels
+```
+
+```{python}
+thedir = dirs[3]
+print(thedir)
+AsicNum = 1
+b = qp()
+b.read_qubicstudio_dataset(thedir, asic=AsicNum)
+plot(a.timeline(TES=1))
+```
+
+```{python}
+AsicNum = 1
+TESnum=94
+print(TESnum)
+Min=1./10.4E-6
+for z in range (128):
+    for i in range(16):
+        thedir = dirs[i]
+        b = qp()
+        b.read_qubicstudio_dataset(thedir, asic=AsicNum)
+        amp=b.max_bias-b.min_bias
+        offset=0.5*(b.max_bias+b.min_bias)
+        Vbias=(offset+amp*b.bias_phase()/2.)
+        ind=np.argsort(Vbias)    
+        if i == 0:
+            Vsqoffset=np.mean(b.timeline(TES=z+1)*62.5/(70.*100)/(b.nsamples-b.n_masked()))
+        plot(Vbias[ind]/10e3*Min,b.timeline(TES=z+1)[ind]*62.5/(70.*100)/(b.nsamples-b.n_masked())-Vsqoffset)
+    grid()
+    xlabel('Flux (in quantum of flux)')
+    ylabel('Current ($\mu$V)')
+    title('ASIC1 (feedback), SQUID number %i'%(z+1))
+    save("./ASIC1_QUBIC_feedback/ASIC1fb_%i"%(z+1),ext="png",close=True,verbose=True)
+```
+
+```{python}
+thedir = dirs[3]
+print(thedir)
+AsicNum = 1
+a = qp()
+a.read_qubicstudio_dataset(thedir, asic=AsicNum)
+```
+
+```{python}
+TES=124
+Min=1./0.2e-6
+for i in range(9):
+    thedir = dirs[i+7]
+    a = qp()
+    a.read_qubicstudio_dataset(thedir, asic=AsicNum)
+    amp = a.max_bias-a.min_bias
+    offset = 0.5*(a.max_bias+a.min_bias)
+    Vbias = 1e-6*(offset+amp*a.bias_phase()/2.)
+    ind = np.argsort(Vbias)
+    # création d'une variable temporaire 
+    temp = a.timeline(TES)[ind]*62.5/(70.*100)/(a.nsamples-a.n_masked())-Vsqoffset
+    # filtre savitzky_golay sur variabale temp
+    filt = sp.signal.savgol_filter(temp, 51, 3) 
+    plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],filt)
+grid()
+
+```
+
+```{python}
+print Vbias[ind]/1.2*Min
+```
+
+```{python}
+alpha = Vbias[ind]/1.2*Min
+a= alpha.shape
+```
+
+```{python}
+beta = [None] * 4849
+for i in range (4849):
+    beta[i]=alpha[i]-alpha[0]
+    
+    
+print  beta  
+```
+
+```{python}
+
+```
