@@ -103,6 +103,8 @@ a.read_qubicstudio_dataset(thedir, asic=AsicNum)
 
 ```
 
+## ASIC1 & 2
+
 ```{python}
 AsicNum = 1
 Min=1./0.2e-6
@@ -126,23 +128,25 @@ for z in range (128):
 ```
 
 ```{python}
-AsicNum = 1
-z=128
+AsicNum = 2
 Min=1./0.2e-6
-
-for i in range(16):
-    thedir = dirs[i]
-    a = qp()
-    a.read_qubicstudio_dataset(thedir, asic=AsicNum)
-    amp=a.max_bias-a.min_bias
-    offset=0.5*(a.max_bias+a.min_bias)
-    Vbias=1e-6*(offset+amp*a.bias_phase()/2.)
-    ind=np.argsort(Vbias)
-    if i == 0:
-        Vsqoffset=np.mean(a.timeline(TES=z)*62.5/(70.*100)/(a.nsamples-a.n_masked()))
-    plot(Vbias[ind]/1.2*Min,a.timeline(TES=z)[ind]*62.5/(70.*100)/(a.nsamples-a.n_masked())-Vsqoffset)
-grid()
-
+for z in range (128):
+    for i in range(9):
+        thedir = dirs[i+7]
+        a = qp()
+        a.read_qubicstudio_dataset(thedir, asic=AsicNum)
+        amp=a.max_bias-a.min_bias
+        offset=0.5*(a.max_bias+a.min_bias)
+        Vbias=1e-6*(offset+amp*a.bias_phase()/2.)
+        ind=np.argsort(Vbias)
+        temp = a.timeline(TES=z+1)[ind]*62.5/(70.*100)/(a.nsamples-a.n_masked())-Vsqoffset
+        filt = sp.signal.savgol_filter(temp, 51, 3) 
+        plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],filt)
+        grid()
+        xlabel('Flux (in quantum of flux)')
+        ylabel('Current ($\mu$V)')
+        title('ASIC2, SQUID number %i'%(z+1))
+    save("./ASIC2_QUBIC/ASIC2_%i"%(z+1),ext="png",close=True,verbose=True)
 ```
 
 ## V(Phi) feedback
@@ -171,14 +175,14 @@ b.read_qubicstudio_dataset(thedir, asic=AsicNum)
 plot(a.timeline(TES=1))
 ```
 
+## ASIC 1 & 2 feedback
+
 ```{python}
 AsicNum = 1
-TESnum=94
-print(TESnum)
 Min=1./10.4E-6
 for z in range (128):
-    for i in range(16):
-        thedir = dirs[i]
+    for i in range(9):
+        thedir = dirs[i+7]
         b = qp()
         b.read_qubicstudio_dataset(thedir, asic=AsicNum)
         amp=b.max_bias-b.min_bias
@@ -187,7 +191,9 @@ for z in range (128):
         ind=np.argsort(Vbias)    
         if i == 0:
             Vsqoffset=np.mean(b.timeline(TES=z+1)*62.5/(70.*100)/(b.nsamples-b.n_masked()))
-        plot(Vbias[ind]/10e3*Min,b.timeline(TES=z+1)[ind]*62.5/(70.*100)/(b.nsamples-b.n_masked())-Vsqoffset)
+        temp = b.timeline(TES=z+1)[ind]*62.5/(70.*100)/(b.nsamples-b.n_masked())-Vsqoffset
+        filt = sp.signal.savgol_filter(temp, 51, 3) 
+        plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],-1*filt)
     grid()
     xlabel('Flux (in quantum of flux)')
     ylabel('Current ($\mu$V)')
@@ -196,49 +202,27 @@ for z in range (128):
 ```
 
 ```{python}
-thedir = dirs[3]
-print(thedir)
-AsicNum = 1
-a = qp()
-a.read_qubicstudio_dataset(thedir, asic=AsicNum)
-```
-
-```{python}
-TES=124
-Min=1./0.2e-6
-for i in range(9):
-    thedir = dirs[i+7]
-    a = qp()
-    a.read_qubicstudio_dataset(thedir, asic=AsicNum)
-    amp = a.max_bias-a.min_bias
-    offset = 0.5*(a.max_bias+a.min_bias)
-    Vbias = 1e-6*(offset+amp*a.bias_phase()/2.)
-    ind = np.argsort(Vbias)
-    # création d'une variable temporaire 
-    temp = a.timeline(TES)[ind]*62.5/(70.*100)/(a.nsamples-a.n_masked())-Vsqoffset
-    # filtre savitzky_golay sur variabale temp
-    filt = sp.signal.savgol_filter(temp, 51, 3) 
-    plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],filt)
-grid()
-
-```
-
-```{python}
-print Vbias[ind]/1.2*Min
-```
-
-```{python}
-alpha = Vbias[ind]/1.2*Min
-a= alpha.shape
-```
-
-```{python}
-beta = [None] * 4849
-for i in range (4849):
-    beta[i]=alpha[i]-alpha[0]
-    
-    
-print  beta  
+AsicNum = 2
+Min=1./10.4E-6
+for z in range (128):
+    for i in range(9):
+        thedir = dirs[i+7]
+        b = qp()
+        b.read_qubicstudio_dataset(thedir, asic=AsicNum)
+        amp=b.max_bias-b.min_bias
+        offset=0.5*(b.max_bias+b.min_bias)
+        Vbias=(offset+amp*b.bias_phase()/2.)
+        ind=np.argsort(Vbias)    
+        if i == 0:
+            Vsqoffset=np.mean(b.timeline(TES=z+1)*62.5/(70.*100)/(b.nsamples-b.n_masked()))
+        temp = b.timeline(TES=z+1)[ind]*62.5/(70.*100)/(b.nsamples-b.n_masked())-Vsqoffset
+        filt = sp.signal.savgol_filter(temp, 51, 3) 
+        plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],-1*filt)
+    grid()
+    xlabel('Flux (in quantum of flux)')
+    ylabel('Current ($\mu$V)')
+    title('ASIC2 (feedback), SQUID number %i'%(z+1))
+    save("./ASIC2_QUBIC_feedback/ASIC2fb_%i"%(z+1),ext="png",close=True,verbose=True)
 ```
 
 ```{python}
