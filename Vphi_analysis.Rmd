@@ -33,6 +33,8 @@ This notebook is used to test thes reponses of SQUIDs for the voltage regardinf 
 
 <!-- #endregion -->
 
+______________________________
+
 ```{python}
 # %matplotlib notebook
 # #%matplotlib inline
@@ -52,7 +54,7 @@ from qubicpack import qubicpack as qp
 import os,sys
 import numpy as np
 import pandas as pd
-from matplotlib.pyplot import *
+#from matplotlib.pyplot import *
 import matplotlib.mlab as mlab
 import scipy.ndimage.filters as f
 import glob
@@ -67,6 +69,9 @@ import scipy as sp
 ```
 
 # Fonctions
+
+
+---------------
 
 ```{python}
 def save(path, ext='png', close=True, verbose=True):
@@ -100,6 +105,9 @@ def save(path, ext='png', close=True, verbose=True):
 
 ## V(Phi) sans feedback
 
+
+--------------------
+
 ```{python}
 day = '2019-04-23'
 data_dir = '/home/guillaume/Documents/SQUID/'+day+'/'
@@ -126,12 +134,15 @@ a.read_qubicstudio_dataset(thedir, asic=AsicNum)
 
 ## ASIC1 & 2
 
+
+------------------
+
 ```{python}
 AsicNum = 1
 # Mutual inductance
 Min=1./0.2e-6 
 for z in range (128):
-# the first 8 index are too low to induce curves, so we start at 9    
+# the first 8 index are too low to induce curves, so we start at 7    
     for i in range(9): 
         thedir = dirs[i+7]
 # reading the data from qubicpack
@@ -145,6 +156,7 @@ for z in range (128):
 # Ind : this allow to avoid the noncoherent points in raw data for the flux
         ind=np.argsort(Vbias)
 # temp is a temporaly variable that will be used after for the filter
+        Vsqoffset=np.mean(a.timeline(TES=z)*62.5/(70.*100)/(a.nsamples-a.n_masked()))
         temp = a.timeline(TES=z+1)[ind]*62.5/(70.*100)/(a.nsamples-a.n_masked())-Vsqoffset
 # savitzky golay filter
         filt = sp.signal.savgol_filter(temp, 51, 3) 
@@ -157,6 +169,7 @@ for z in range (128):
         title('ASIC1, SQUID number %i'%(z+1))
         
     save("./ASIC1_QUBIC/ASIC1_%i"%(z+1),ext="png",close=True,verbose=True)
+    
 ```
 
 ```{python}
@@ -171,9 +184,11 @@ for z in range (128):
         offset=0.5*(a.max_bias+a.min_bias)
         Vbias=1e-6*(offset+amp*a.bias_phase()/2.)
         ind=np.argsort(Vbias)
+        if i == 0:
+            Vsqoffset=np.mean(a.timeline(TES=z+1)*62.5/(70.*100)/(a.nsamples-a.n_masked()))
         temp = a.timeline(TES=z+1)[ind]*62.5/(70.*100)/(a.nsamples-a.n_masked())-Vsqoffset
         filt = sp.signal.savgol_filter(temp, 51, 3) 
-        plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],filt)
+        plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],-1*filt)
         grid()
         xlabel('Flux (in quantum of flux)')
         ylabel('Current ($\mu$V)')
@@ -182,6 +197,9 @@ for z in range (128):
 ```
 
 ## V(Phi) feedback
+
+
+-------------------------------
 
 ```{python}
 day = '2019-04-24'
@@ -208,6 +226,9 @@ plot(a.timeline(TES=1))
 ```
 
 ## ASIC 1 & 2 feedback
+
+
+-----------------------------------------
 
 ```{python}
 AsicNum = 1
@@ -255,6 +276,100 @@ for z in range (128):
     ylabel('Current ($\mu$V)')
     title('ASIC2 (feedback), SQUID number %i'%(z+1))
     save("./ASIC2_QUBIC_feedback/ASIC2fb_%i"%(z+1),ext="png",close=True,verbose=True)
+```
+
+----------------------------------------------------------------
+
+
+# Test IV
+
+
+-------------------------------------------------------------------------------------
+
+```{python}
+# creation of tab that contains values from ASIC
+I=np.zeros(16)
+I[0]=0
+I[1]=5.1
+I[2]=7.65
+I[3]=10.20
+I[4]=12.75
+I[5]=15.30
+I[6]=17.85
+I[7]=20.41
+I[8]=22.96
+I[9]=25.51
+I[10]=28.06
+I[11]=30.61
+I[12]=33.16
+I[13]=35.71
+I[14]=38.26
+I[15]=40.81
+```
+
+## ASIC 1
+
+
+-----------------
+
+```{python}
+z=k=l=0
+gain=70.*100
+```
+
+```{python}
+lmt = 5000
+Vsquid=np.empty((n,P,lmt))
+Vsquid[:,:,:] = np.nan
+AsicNum = 1
+
+for k in range (n):
+    thedir = dirs[k]
+    print(thedir)
+    a = qp()
+    a.verbosity = 0
+    a.read_qubicstudio_dataset(thedir, asic=AsicNum)
+    lmt2 = len(a.timeline(TES=1))
+
+    for z in range (P) :
+        print(z)
+        Vsquid[k,z,0:lmt2]=a.timeline(TES=z+1)
+        
+
+```
+
+```{python}
+Vmoy = np.nanmean(Vsquid, axis=2)
+Vmin = np.nanmin(Vsquid, axis=2)
+Vmax = np.nanmax(Vsquid, axis=2)
+#Vmoy=Vsquid.mean(axis=2)
+#Vmin=Vsquid.min(axis=2)
+#Vmax=Vsquid.max(axis=2)
+    
+Vmoy2=np.asarray([(-Vmoy[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
+Vmin2=np.asarray([(-Vmin[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
+Vmax2=np.asarray([(-Vmax[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
+    
+z = 45
+nsq=z+1
+    
+plt.plot(I,Vmin2[z,:], label= "minimal Value" )
+plt.plot(I,Vmax2[z,:], label= "maximal Value")
+plt.plot(I,Vmoy2[z,:], label= "mean Value")
+
+plt.grid()
+plt.xlabel('Intensity ($\mu$A)')
+plt.ylabel('Voltage ($\mu$V)')
+plt.title('ASIC1 SQUID number %i'%nsq) 
+plt.legend(loc='upper right', bbox_to_anchor=(1,1 ))
+```
+
+```{python}
+plt.plot(Vsquid[10,23,:])
+```
+
+```{python}
+Vmoy2.shape
 ```
 
 ```{python}
