@@ -150,7 +150,7 @@ for z in range (128):
         a.read_qubicstudio_dataset(thedir, asic=AsicNum)
 # Amplitude peak to peak of the sinus
         amp=a.max_bias-a.min_bias
-# offset of the sinus signal (see to do it another way wich is more "real like")
+# offset of the sinus signal 
         offset=0.5*(a.max_bias+a.min_bias)
         Vbias=1e-6*(offset+amp*a.bias_phase()/2.)
 # Ind : this allow to avoid the noncoherent points in raw data for the flux
@@ -174,25 +174,36 @@ for z in range (128):
 
 ```{python}
 AsicNum = 2
+# Mutual inductance
 Min=1./0.2e-6
 for z in range (128):
+# the first 8 index are too low to induce curves, so we start at 7 
     for i in range(9):
         thedir = dirs[i+7]
+# reading the data from qubicpack
         a = qp()
         a.read_qubicstudio_dataset(thedir, asic=AsicNum)
+# Amplitude peak to peak of the sinus
         amp=a.max_bias-a.min_bias
+# offset of the sinus signal 
         offset=0.5*(a.max_bias+a.min_bias)
         Vbias=1e-6*(offset+amp*a.bias_phase()/2.)
+# Ind : this allow to avoid the noncoherent points in raw data for the flux
         ind=np.argsort(Vbias)
+# temp is a temporaly variable that will be used after for the filter
         if i == 0:
             Vsqoffset=np.mean(a.timeline(TES=z+1)*62.5/(70.*100)/(a.nsamples-a.n_masked()))
         temp = a.timeline(TES=z+1)[ind]*62.5/(70.*100)/(a.nsamples-a.n_masked())-Vsqoffset
-        filt = sp.signal.savgol_filter(temp, 51, 3) 
+# savitzky golay filter
+        filt = sp.signal.savgol_filter(temp, 51, 3)
+
+### plot parameters ### 
         plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],-1*filt)
         grid()
         xlabel('Flux (in quantum of flux)')
         ylabel('Current ($\mu$V)')
         title('ASIC2, SQUID number %i'%(z+1))
+        
     save("./ASIC2_QUBIC/ASIC2_%i"%(z+1),ext="png",close=True,verbose=True)
 ```
 
@@ -320,7 +331,9 @@ gain=70.*100
 ```{python}
 lmt = 5000
 Vsquid=np.empty((n,P,lmt))
+VsquidSG=np.empty((n,P,lmt))
 Vsquid[:,:,:] = np.nan
+VsquidSG[:,:,:] = np.nan
 AsicNum = 1
 
 for k in range (n):
@@ -331,17 +344,21 @@ for k in range (n):
     a.read_qubicstudio_dataset(thedir, asic=AsicNum)
     lmt2 = len(a.timeline(TES=1))
 
+
     for z in range (P) :
         print(z)
+        beforeFilt = a.timeline(TES=z+1)
+        filt = sp.signal.savgol_filter(beforeFilt,51, 3) 
         Vsquid[k,z,0:lmt2]=a.timeline(TES=z+1)
+        VsquidSG[k,z,0:lmt2]=filt
         
 
 ```
 
 ```{python}
-Vmoy = np.nanmean(Vsquid, axis=2)
-Vmin = np.nanmin(Vsquid, axis=2)
-Vmax = np.nanmax(Vsquid, axis=2)
+Vmoy = np.nanmean(VsquidSG, axis=2)
+Vmin = np.nanmin(VsquidSG, axis=2)
+Vmax = np.nanmax(VsquidSG, axis=2)
 #Vmoy=Vsquid.mean(axis=2)
 #Vmin=Vsquid.min(axis=2)
 #Vmax=Vsquid.max(axis=2)
@@ -349,29 +366,87 @@ Vmax = np.nanmax(Vsquid, axis=2)
 Vmoy2=np.asarray([(-Vmoy[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
 Vmin2=np.asarray([(-Vmin[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
 Vmax2=np.asarray([(-Vmax[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
+
+
+for z in range(128):
+    nsq=z+1
     
-z = 45
-nsq=z+1
+    plt.plot(I,Vmin2[z,:], label= "minimal Value" )
+    plt.plot(I,Vmax2[z,:], label= "maximal Value")
+    plt.plot(I,Vmoy2[z,:], label= "mean Value")
+
+    plt.grid()
+    plt.xlabel('Intensity ($\mu$A)')
+    plt.ylabel('Voltage ($\mu$V)')
+    plt.title('ASIC1 SQUID number %i'%nsq) 
+    plt.legend(loc='upper right', bbox_to_anchor=(0.25,1 ))
+    save("./ASIC1_IV/ASIC1_IV_%i"%(z+1),ext="png",close=True,verbose=True)
+```
+
+## ASIC 2
+
+
+--------------------
+
+```{python}
+z=k=l=0
+gain=70.*100
+```
+
+```{python}
+lmt = 5000
+Vsquid=np.empty((n,P,lmt))
+VsquidSG=np.empty((n,P,lmt))
+Vsquid[:,:,:] = np.nan
+VsquidSG[:,:,:] = np.nan
+AsicNum = 2
+
+for k in range (n):
+    thedir = dirs[k]
+    print(thedir)
+    b= qp()
+    b.verbosity = 0
+    b.read_qubicstudio_dataset(thedir, asic=AsicNum)
+    lmt2 = len(b.timeline(TES=1))
+
+
+    for z in range (P) :
+        print(z)
+        beforeFilt = b.timeline(TES=z+1)
+        filt = sp.signal.savgol_filter(beforeFilt,51, 3) 
+        Vsquid[k,z,0:lmt2]=b.timeline(TES=z+1)
+        VsquidSG[k,z,0:lmt2]=filt
+        
+
+```
+
+```{python}
+Vmoy = np.nanmean(VsquidSG, axis=2)
+Vmin = np.nanmin(VsquidSG, axis=2)
+Vmax = np.nanmax(VsquidSG, axis=2)
+#Vmoy=Vsquid.mean(axis=2)
+#Vmin=Vsquid.min(axis=2)
+#Vmax=Vsquid.max(axis=2)
     
-plt.plot(I,Vmin2[z,:], label= "minimal Value" )
-plt.plot(I,Vmax2[z,:], label= "maximal Value")
-plt.plot(I,Vmoy2[z,:], label= "mean Value")
+Vmoy2=np.asarray([(Vmoy[:,_]-Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
+Vmin2=np.asarray([(Vmin[:,_]-Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
+Vmax2=np.asarray([(Vmax[:,_]-Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
 
-plt.grid()
-plt.xlabel('Intensity ($\mu$A)')
-plt.ylabel('Voltage ($\mu$V)')
-plt.title('ASIC1 SQUID number %i'%nsq) 
-plt.legend(loc='upper right', bbox_to_anchor=(1,1 ))
-```
 
-```{python}
-plt.plot(Vsquid[10,23,:])
-```
+for z in range (128) :
 
-```{python}
-Vmoy2.shape
-```
+    nsq=z+1
+    
+    plt.plot(I,Vmin2[z,:], label= "maximall Value" )
+    plt.plot(I,Vmax2[z,:], label= "minimal Value")
+    plt.plot(I,Vmoy2[z,:], label= "mean Value")
 
-```{python}
+    plt.grid()
+    plt.xlabel('Intensity ($\mu$A)')
+    plt.ylabel('Voltage ($\mu$V)')
+    plt.title('ASIC2 SQUID number %i'%nsq) 
+    plt.legend(loc='upper right', bbox_to_anchor=(0.25,1 ))
 
+    
+    save("./ASIC2_IV/ASIC2_IV_%i"%(z+1),ext="png",close=True,verbose=True)
 ```
