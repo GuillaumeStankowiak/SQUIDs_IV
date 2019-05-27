@@ -243,49 +243,72 @@ plot(a.timeline(TES=1))
 
 ```{python}
 AsicNum = 1
+# Mutual inductance
 Min=1./10.4E-6
 for z in range (128):
+# the first 8 index are too low to induce curves, so we start at 7 
     for i in range(9):
         thedir = dirs[i+7]
+# reading the data from qubicpack
         b = qp()
         b.read_qubicstudio_dataset(thedir, asic=AsicNum)
+# Amplitude peak to peak of the sinus
         amp=b.max_bias-b.min_bias
+# offset of the sinus signal
         offset=0.5*(b.max_bias+b.min_bias)
         Vbias=(offset+amp*b.bias_phase()/2.)
-        ind=np.argsort(Vbias)    
+# Ind : this allow to avoid the noncoherent points in raw data for the flux
+        ind=np.argsort(Vbias) 
+# temp is a temporaly variable that will be used after for the filter
         if i == 0:
             Vsqoffset=np.mean(b.timeline(TES=z+1)*62.5/(70.*100)/(b.nsamples-b.n_masked()))
         temp = b.timeline(TES=z+1)[ind]*62.5/(70.*100)/(b.nsamples-b.n_masked())-Vsqoffset
+# savitzky golay filter
         filt = sp.signal.savgol_filter(temp, 51, 3) 
+        
+### plot parameters ### 
         plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],-1*filt)
-    grid()
-    xlabel('Flux (in quantum of flux)')
-    ylabel('Current ($\mu$V)')
-    title('ASIC1 (feedback), SQUID number %i'%(z+1))
+        grid()
+        xlabel('Flux (in quantum of flux)')
+        ylabel('Current ($\mu$V)')
+        title('ASIC1 (feedback), SQUID number %i'%(z+1))
+        
     save("./ASIC1_QUBIC_feedback/ASIC1fb_%i"%(z+1),ext="png",close=True,verbose=True)
 ```
 
 ```{python}
 AsicNum = 2
+# Mutual inductance
 Min=1./10.4E-6
 for z in range (128):
+# the first 8 index are too low to induce curves, so we start at 7 
     for i in range(9):
         thedir = dirs[i+7]
+# reading the data from qubicpack
         b = qp()
         b.read_qubicstudio_dataset(thedir, asic=AsicNum)
+# Amplitude peak to peak of the sinus
         amp=b.max_bias-b.min_bias
+# offset of the sinus signal
         offset=0.5*(b.max_bias+b.min_bias)
         Vbias=(offset+amp*b.bias_phase()/2.)
-        ind=np.argsort(Vbias)    
+# Ind : this allow to avoid the noncoherent points in raw data for the flux
+        ind=np.argsort(Vbias) 
+# temp is a temporaly variable that will be used after for the filter
         if i == 0:
             Vsqoffset=np.mean(b.timeline(TES=z+1)*62.5/(70.*100)/(b.nsamples-b.n_masked()))
         temp = b.timeline(TES=z+1)[ind]*62.5/(70.*100)/(b.nsamples-b.n_masked())-Vsqoffset
+# savitzky golay filter
         filt = sp.signal.savgol_filter(temp, 51, 3) 
+    
+    
+### plot parameters ### 
         plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],-1*filt)
-    grid()
-    xlabel('Flux (in quantum of flux)')
-    ylabel('Current ($\mu$V)')
-    title('ASIC2 (feedback), SQUID number %i'%(z+1))
+        grid()
+        xlabel('Flux (in quantum of flux)')
+        ylabel('Current ($\mu$V)')
+        title('ASIC2 (feedback), SQUID number %i'%(z+1))
+        
     save("./ASIC2_QUBIC_feedback/ASIC2fb_%i"%(z+1),ext="png",close=True,verbose=True)
 ```
 
@@ -329,22 +352,23 @@ gain=70.*100
 ```
 
 ```{python}
-lmt = 5000
+lmt = 5000 # this create the limit of the tab, if not issues with some file of 4849 variable instead of 4950
+#Creation of empty tab, fill with NaN
 Vsquid=np.empty((n,P,lmt))
 VsquidSG=np.empty((n,P,lmt))
 Vsquid[:,:,:] = np.nan
 VsquidSG[:,:,:] = np.nan
 AsicNum = 1
 
+### Reading files from qubic ###
 for k in range (n):
     thedir = dirs[k]
     print(thedir)
     a = qp()
-    a.verbosity = 0
     a.read_qubicstudio_dataset(thedir, asic=AsicNum)
     lmt2 = len(a.timeline(TES=1))
 
-
+### fill the tab with the data filtered by a savitzky golay filter ###
     for z in range (P) :
         print(z)
         beforeFilt = a.timeline(TES=z+1)
@@ -359,15 +383,16 @@ for k in range (n):
 Vmoy = np.nanmean(VsquidSG, axis=2)
 Vmin = np.nanmin(VsquidSG, axis=2)
 Vmax = np.nanmax(VsquidSG, axis=2)
-#Vmoy=Vsquid.mean(axis=2)
-#Vmin=Vsquid.min(axis=2)
-#Vmax=Vsquid.max(axis=2)
-    
+
+
+# Create variable , readable for the plot
 Vmoy2=np.asarray([(-Vmoy[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
 Vmin2=np.asarray([(-Vmin[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
 Vmax2=np.asarray([(-Vmax[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
 
 
+
+### plot all value ###
 for z in range(128):
     nsq=z+1
     
@@ -394,13 +419,15 @@ gain=70.*100
 ```
 
 ```{python}
-lmt = 5000
+lmt = 5000 # this create the limit of the tab, if not issues with some file of 4849 variable instead of 4950
+#Creation of empty tab, fill with NaN
 Vsquid=np.empty((n,P,lmt))
 VsquidSG=np.empty((n,P,lmt))
 Vsquid[:,:,:] = np.nan
 VsquidSG[:,:,:] = np.nan
 AsicNum = 2
 
+### Reading files from qubic ###
 for k in range (n):
     thedir = dirs[k]
     print(thedir)
@@ -409,7 +436,7 @@ for k in range (n):
     b.read_qubicstudio_dataset(thedir, asic=AsicNum)
     lmt2 = len(b.timeline(TES=1))
 
-
+### fill the tab with the data filtered by a savitzky golay filter ###
     for z in range (P) :
         print(z)
         beforeFilt = b.timeline(TES=z+1)
@@ -424,15 +451,15 @@ for k in range (n):
 Vmoy = np.nanmean(VsquidSG, axis=2)
 Vmin = np.nanmin(VsquidSG, axis=2)
 Vmax = np.nanmax(VsquidSG, axis=2)
-#Vmoy=Vsquid.mean(axis=2)
-#Vmin=Vsquid.min(axis=2)
-#Vmax=Vsquid.max(axis=2)
-    
+
+
+# Create variable , readable for the plot
 Vmoy2=np.asarray([(Vmoy[:,_]-Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
 Vmin2=np.asarray([(Vmin[:,_]-Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
 Vmax2=np.asarray([(Vmax[:,_]-Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
 
 
+### plot all value ###
 for z in range (128) :
 
     nsq=z+1
