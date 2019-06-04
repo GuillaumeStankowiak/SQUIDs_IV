@@ -66,6 +66,7 @@ import pickle
 
 import matplotlib.pyplot as plt
 import scipy as sp
+import timeit
 ```
 
 # Fonctions
@@ -476,4 +477,152 @@ for z in range (128) :
 
     
     save("./ASIC2_IV/ASIC2_IV_%i"%(z+1),ext="png",close=True,verbose=True)
+```
+
+## histogram
+
+
+------------------
+
+```{python}
+z=32
+Min=1./0.2e-6 
+AsicNum=1
+thedir = dirs[10]
+i=10
+# reading the data from qubicpack
+b = qp()
+b.read_qubicstudio_dataset(thedir, asic=AsicNum)
+```
+
+```{python}
+histo=np.empty(16) # create tab for peak to peak val
+data=np.empty((128,16)) # create a tab for each squid to keep all ptp value for each 
+invdata=np.empty((16,128))
+for i in range (16) :
+    thedir = dirs[i]
+    h = qp()
+    h.read_qubicstudio_dataset(thedir, asic=AsicNum)
+    for z in range (128):
+        # Amplitude peak to peak of the sinus
+        amp=h.max_bias-h.min_bias
+        # offset of the sinus signal
+        offset=0.5*(h.max_bias+h.min_bias)
+        Vbias=(offset+amp*h.bias_phase()/2.)
+        # Ind : this allow to avoid the noncoherent points in raw data for the flux
+        ind=np.argsort(Vbias) 
+        # temp is a temporaly variable that will be used after for the filter
+        if i == 0 :
+            Vsqoffset=np.mean(h.timeline(TES=z+1)*62.5/(70.*100)/(h.nsamples-h.n_masked()))
+        temp = h.timeline(TES=z+1)[ind]*62.5/(70.*100)/(h.nsamples-h.n_masked())-Vsqoffset
+        # savitzky golay filter
+        filt = sp.signal.savgol_filter(temp, 51, 3) 
+        histo[i] = np.max(filt) - np.min(filt)
+        data[z,i]=histo[i]
+        invdata[i,z]=histo[i]
+
+```
+
+```{python}
+plt.plot(data)
+plt.grid()
+plt.ylabel("PtP value")
+plt.xlabel("Number of SQUID")
+
+```
+
+```{python}
+plt.plot(data[:,10])
+plt.grid()
+plt.ylabel("PtP value")
+plt.xlabel("Number of SQUID")
+```
+
+```{python}
+plt.plot(invdata[:,:])
+plt.grid()
+plt.xlabel("Intensity (index of I)")
+plt.ylabel("SQUIDs")
+```
+
+```{python}
+"""
+idx=np.zeros(16)
+for z in range (128):
+    liste=list(data[z,:])
+    a=max(data[z,:])
+    b=liste.index(a)
+    for i in range (16):
+        if b==i : 
+            idx[i]=idx[i]+1
+            
+
+print idx
+"""
+```
+
+```{python}
+# argmax take the position of the maxvalue for each squid
+plt.hist(np.argmax(data, axis=1), range=[0,16], bins=16)
+plt.grid()
+plt.ylabel("Number of SQUIDs")
+plt.xlabel("Index of current")
+plt.title("Histogram of the optimum current for the SQUID response for ASIC 1")
+```
+
+```{python}
+AsicNum=2
+
+histo=np.empty(16) # create tab for peak to peak val
+data=np.empty((128,16)) # create a tab for each squid to keep all ptp value for each 
+invdata=np.empty((16,128))
+for i in range (16) :
+    thedir = dirs[i]
+    h = qp()
+    h.read_qubicstudio_dataset(thedir, asic=AsicNum)
+    for z in range (128):
+        # Amplitude peak to peak of the sinus
+        amp=h.max_bias-h.min_bias
+        # offset of the sinus signal
+        offset=0.5*(h.max_bias+h.min_bias)
+        Vbias=(offset+amp*h.bias_phase()/2.)
+        # Ind : this allow to avoid the noncoherent points in raw data for the flux
+        ind=np.argsort(Vbias) 
+        # temp is a temporaly variable that will be used after for the filter
+        if i == 0 :
+            Vsqoffset=np.mean(h.timeline(TES=z+1)*62.5/(70.*100)/(h.nsamples-h.n_masked()))
+        temp = h.timeline(TES=z+1)[ind]*62.5/(70.*100)/(h.nsamples-h.n_masked())-Vsqoffset
+        # savitzky golay filter
+        filt = sp.signal.savgol_filter(temp, 51, 3) 
+        histo[i] = np.max(filt) - np.min(filt)
+        data[z,i]=histo[i]
+        invdata[i,z]=histo[i]
+```
+
+```{python}
+plt.plot(data)
+plt.grid()
+plt.ylabel("PtP value")
+plt.xlabel("Number of SQUID")
+
+```
+
+```{python}
+plt.plot(invdata[:,:])
+plt.grid()
+plt.xlabel("Intensity (index of I)")
+plt.ylabel("SQUIDs")
+```
+
+```{python}
+# argmax take the position of the maxvalue for each squid
+plt.hist(np.argmax(data, axis=1), range=[0,16], bins=16)
+plt.grid()
+plt.ylabel("Number of SQUIDs")
+plt.xlabel("Index of current")
+plt.title("Histogram of the optimum current for the SQUID response for ASIC 2")
+```
+
+```{python}
+
 ```
