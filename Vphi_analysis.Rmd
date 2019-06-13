@@ -166,7 +166,7 @@ for z in range (128):
         plt.plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],filt)
         plt.grid()
         plt.xlabel('Flux (in quantum of flux)')
-        plt.ylabel('Current ($\mu$V)')
+        plt.ylabel('Tension ($\mu$V)')
         plt.title('ASIC1, SQUID number %i'%(z+1))
         
     save("./Analysis/ASIC1_QUBIC/ASIC1_%i"%(z+1),ext="png",close=True,verbose=True)
@@ -202,7 +202,7 @@ for z in range (128):
         plt.plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],-1*filt)
         plt.grid()
         plt.xlabel('Flux (in quantum of flux)')
-        plt.ylabel('Current ($\mu$V)')
+        plt.ylabel('Tension ($\mu$V)')
         plt.title('ASIC2, SQUID number %i'%(z+1))
         
     save("./Analysis/ASIC2_QUBIC/ASIC2_%i"%(z+1),ext="png",close=True,verbose=True)
@@ -268,10 +268,10 @@ for z in range (128):
         filt = sp.signal.savgol_filter(temp, 51, 3) 
         
 ### plot parameters ### 
-        plt.plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],-1*filt)
+        plt.plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],filt)
         plt.grid()
         plt.xlabel('Flux (in quantum of flux)')
-        plt.ylabel('Current ($\mu$V)')
+        plt.ylabel('Tension ($\mu$V)')
         plt.title('ASIC1 (feedback), SQUID number %i'%(z+1))
         
     save("./Analysis/ASIC1_QUBIC_feedback/ASIC1fb_%i"%(z+1),ext="png",close=True,verbose=True)
@@ -307,7 +307,7 @@ for z in range (128):
         plt.plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],-1*filt)
         plt.grid()
         plt.xlabel('Flux (in quantum of flux)')
-        plt.ylabel('Current ($\mu$V)')
+        plt.ylabel('Tension ($\mu$V)')
         plt.title('ASIC2 (feedback), SQUID number %i'%(z+1))
         
     save("./Analysis/ASIC2_QUBIC_feedback/ASIC2fb_%i"%(z+1),ext="png",close=True,verbose=True)
@@ -575,10 +575,15 @@ save("./Analysis/Results/ASIC1_Histogram",ext="png",close=True,verbose=True)
 ```
 
 ```{python}
-plt.hist(data[:,9],range=[0,30], bins=30, alpha = 0.3, color= 'r' ,label="9")
-plt.hist(data[:,10],range=[0,30], bins=30, alpha = 0.1, color= 'b',label="10")
-#plt.hist(data[:,11],range=[0,30], bins=30, alpha = 0.5, color= 'g', label="11")
+plt.hist(data[:,9],range=[0,30], bins=30, alpha = 0.3, color= 'r' ,label="index 9")
+plt.hist(data[:,10],range=[0,30], bins=30, alpha = 0.1, color= 'b',label="index 10")
+plt.hist(data[:,11],range=[0,30], bins=30, alpha = 0.5, color= 'g', label="index 11")
 plt.legend()
+plt.grid()
+plt.xlabel("Voltage ($\mu$V)")
+plt.ylabel('Number of SQUID')
+plt.title("ASIC 1 histogram")
+save("./Analysis/Results/ASIC1_Histogram_multiindex",ext="png",close=True,verbose=True)
 ```
 
 ```{python}
@@ -592,15 +597,24 @@ for z in range (16):
 ```
 
 ```{python}
-data[:,10]
+for z in range (16):
+    print "for index %i"%z 
+    a=np.shape((np.where(data[:,z]>= 10)))
+    prct=a[1]/128. *100 
+    print "%f working squid" %prct
+    print "median = %f" %np.median(data[:,z])
+    print "\n"
 ```
 
 ```{python}
-plt.plot(data)
-plt.grid()
-plt.ylabel("PtP value")
-plt.xlabel("Number of SQUID")
-save("./Analysis/Results/ASIC2_data_plot1",ext="png",close=True,verbose=True)
+fich=open("measures_P87.txt","w")
+for z in range(128):
+    a=np.argmax(data[z,:])
+    k=h.tes2pix(z+1)
+    fich.write("%d %i  \n" % ((k), a))
+
+
+
 ```
 
 ```{python}
@@ -633,6 +647,33 @@ for i in range (16) :
 ```
 
 ```{python}
+for z in range(128):
+    a=np.argmax(data[z,:])
+    k=h.tes2pix(z+1)
+    print k
+    fich.write("%d %i  \n" % (k, a))
+
+
+fich.close()
+```
+
+```{python}
+plt.plot(data)
+plt.grid()
+plt.ylabel("PtP value")
+plt.xlabel("Number of SQUID")
+save("./Analysis/Results/ASIC2_data_plot1",ext="png",close=True,verbose=True)
+```
+
+```{python}
+
+```
+
+```{python}
+
+```
+
+```{python}
 plt.plot(invdata[:,:])
 plt.grid()
 plt.xlabel("Intensity (index of I)")
@@ -652,10 +693,15 @@ save("./Analysis/Results/ASIC2_Histogram",ext="png",close=True,verbose=True)
 
 ```{python}
 #plt.hist(data[:,9],range=[0,30], bins=30, label="9")
-plt.hist(data[:,10],range=[0,30], bins=30, alpha = 0.1, color= 'b',label="10")
-plt.hist(data[:,12],range=[0,30], bins=30, alpha = 0.3, color= 'r' ,label="12")
-plt.hist(data[:,11],range=[0,30], bins=30, alpha = 0.5, color= 'g', label="11")
+plt.hist(data[:,10],range=[0,30], bins=30, alpha = 0.1, color= 'b',label="index 10")
+plt.hist(data[:,12],range=[0,30], bins=30, alpha = 0.3, color= 'r' ,label="index 12")
+plt.hist(data[:,11],range=[0,30], bins=30, alpha = 0.5, color= 'g', label="index 11")
 plt.legend()
+plt.grid()
+plt.xlabel("Voltage ($\mu$V)")
+plt.ylabel('Number of SQUID')
+plt.title("ASIC 2 histogram")
+save("./Analysis/Results/ASIC2_Histogram_multiindex",ext="png",close=True,verbose=True)
 ```
 
 ```{python}
@@ -666,6 +712,27 @@ for z in range (16):
     print "%f working squid" %prct
     print "median = %f" %np.median(data[:,z])
     print "\n"
+```
+
+```{python}
+temps=b.hk['EXTERN_HK']
+temps.keys()
+```
+
+```{python}
+b.max_bias
+```
+
+```{python}
+b.min_bias
+```
+
+```{python}
+temps['AVS47_1_CH2']
+```
+
+```{python}
+(4.146006+4.145855)/2.
 ```
 
 ```{python}
