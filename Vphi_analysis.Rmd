@@ -63,6 +63,7 @@ import scipy.signal as scsig
 from scipy import interpolate
 import datetime as dt
 import pickle
+from qubicpack.pix2tes import tes2pix
 
 import matplotlib.pyplot as plt
 import scipy as sp
@@ -103,111 +104,6 @@ def save(path, ext='png', close=True, verbose=True):
         print("Done")
 ```
 
-## V(Phi) without feedback
-
-
---------------------
-
-```{python}
-day = '2019-04-23'
-data_dir = '/home/guillaume/Documents/SQUID/'+day+'/'
-#dirs = np.sort(glob.glob(data_dir+'*test_sw*'))
-dirs = np.sort(glob.glob(data_dir+'*bias*'))
-print (dirs)
-print (len(dirs))
-
-labels = []
-for d in dirs:
-    bla = str.split(d,'__')
-    labels.append(bla[1])
-print labels
-```
-
-```{python}
-thedir = dirs[3]
-print(thedir)
-AsicNum = 1
-a = qp()
-a.read_qubicstudio_dataset(thedir, asic=AsicNum)
-
-```
-
-## ASIC1 & 2
-
-
-------------------
-
-```{python}
-AsicNum = 1
-# Mutual inductance
-Min=1./0.2e-6 
-for z in range (128):
-# the first 8 index are too low to induce curves, so we start at 7    
-    for i in range(9): 
-        thedir = dirs[i+7]
-# reading the data from qubicpack
-        a = qp()
-        a.read_qubicstudio_dataset(thedir, asic=AsicNum)
-# Amplitude peak to peak of the sinus
-        amp=a.max_bias-a.min_bias
-# offset of the sinus signal 
-        offset=0.5*(a.max_bias+a.min_bias)
-        Vbias=1e-6*(offset+amp*a.bias_phase()/2.)
-# Ind : this allow to avoid the noncoherent points in raw data for the flux
-        ind=np.argsort(Vbias)
-# temp is a temporaly variable that will be used after for the filter
-        if i == 0 : 
-            Vsqoffset=np.mean(a.timeline(TES=z+1)*62.5/(70.*100)/(a.nsamples-a.n_masked()))
-        temp = a.timeline(TES=z+1)[ind]*62.5/(70.*100)/(a.nsamples-a.n_masked())-Vsqoffset
-# savitzky golay filter
-        filt = sp.signal.savgol_filter(temp, 51, 3) 
-
-### plot parameters ###    
-        plt.plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],filt)
-        plt.grid()
-        plt.xlabel('Flux (in quantum of flux)')
-        plt.ylabel('Tension ($\mu$V)')
-        plt.title('ASIC1, SQUID number %i'%(z+1))
-        
-    save("./Analysis/ASIC1_QUBIC/ASIC1_%i"%(z+1),ext="png",close=True,verbose=True)
-    
-```
-
-```{python}
-AsicNum = 2
-# Mutual inductance
-Min=1./0.2e-6
-for z in range (128):
-# the first 8 index are too low to induce curves, so we start at 7 
-    for i in range(9):
-        thedir = dirs[i+7]
-# reading the data from qubicpack
-        a = qp()
-        a.read_qubicstudio_dataset(thedir, asic=AsicNum)
-# Amplitude peak to peak of the sinus
-        amp=a.max_bias-a.min_bias
-# offset of the sinus signal 
-        offset=0.5*(a.max_bias+a.min_bias)
-        Vbias=1e-6*(offset+amp*a.bias_phase()/2.)
-# Ind : this allow to avoid the noncoherent points in raw data for the flux
-        ind=np.argsort(Vbias)
-# temp is a temporaly variable that will be used after for the filter
-        if i == 0:
-            Vsqoffset=np.mean(a.timeline(TES=z+1)*62.5/(70.*100)/(a.nsamples-a.n_masked()))
-        temp = a.timeline(TES=z+1)[ind]*62.5/(70.*100)/(a.nsamples-a.n_masked())-Vsqoffset
-# savitzky golay filter
-        filt = sp.signal.savgol_filter(temp, 51, 3)
-
-### plot parameters ### 
-        plt.plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],-1*filt)
-        plt.grid()
-        plt.xlabel('Flux (in quantum of flux)')
-        plt.ylabel('Tension ($\mu$V)')
-        plt.title('ASIC2, SQUID number %i'%(z+1))
-        
-    save("./Analysis/ASIC2_QUBIC/ASIC2_%i"%(z+1),ext="png",close=True,verbose=True)
-```
-
 ## V(Phi) feedback
 
 
@@ -234,7 +130,6 @@ print(thedir)
 AsicNum = 1
 b = qp()
 b.read_qubicstudio_dataset(thedir, asic=AsicNum)
-plot(a.timeline(TES=1))
 ```
 
 ## ASIC 1 & 2 feedback
@@ -451,7 +346,7 @@ for k in range (n):
 ```
 
 ```{python}
-Vmoy = np.nanmean(VsquidSG, axis=2)
+### Vmoy = np.nanmean(VsquidSG, axis=2)
 Vmin = np.nanmin(VsquidSG, axis=2)
 Vmax = np.nanmax(VsquidSG, axis=2)
 
@@ -485,6 +380,9 @@ for z in range (128) :
 
 
 ------------------
+
+
+## ASIC1
 
 ```{python}
 z=32
@@ -534,34 +432,11 @@ save("./Analysis/Results/ASIC1_data_plot1",ext="png",close=True,verbose=True)
 ```
 
 ```{python}
-plt.plot(data[:,10])
-plt.grid()
-plt.ylabel("PtP value")
-plt.xlabel("Number of SQUID")
-```
-
-```{python}
 plt.plot(invdata[:,:])
 plt.grid()
 plt.xlabel("Intensity (index of I)")
 plt.ylabel("SQUIDs")
 save("./Analysis/Results/ASIC1_data_plot2",ext="png",close=True,verbose=True)
-```
-
-```{python}
-"""
-idx=np.zeros(16)
-for z in range (128):
-    liste=list(data[z,:])
-    a=max(data[z,:])
-    b=liste.index(a)
-    for i in range (16):
-        if b==i : 
-            idx[i]=idx[i]+1
-            
-
-print idx
-"""
 ```
 
 ```{python}
@@ -596,26 +471,7 @@ for z in range (16):
     print "\n"
 ```
 
-```{python}
-for z in range (16):
-    print "for index %i"%z 
-    a=np.shape((np.where(data[:,z]>= 10)))
-    prct=a[1]/128. *100 
-    print "%f working squid" %prct
-    print "median = %f" %np.median(data[:,z])
-    print "\n"
-```
-
-```{python}
-fich=open("measures_P87.txt","w")
-for z in range(128):
-    a=np.argmax(data[z,:])
-    k=h.tes2pix(z+1)
-    fich.write("%d %i  \n" % ((k), a))
-
-
-
-```
+## ASIC 2
 
 ```{python}
 AsicNum=2
@@ -647,14 +503,13 @@ for i in range (16) :
 ```
 
 ```{python}
-for z in range(128):
-    a=np.argmax(data[z,:])
-    k=h.tes2pix(z+1)
-    print k
-    fich.write("%d %i  \n" % (k, a))
-
-
-fich.close()
+for z in range (16):
+    a=np.shape((np.where(data[:,z]>= 10)))
+    prct=a[1]/128. *100
+    print "for index %i"%z 
+    print "%f working squid" %prct
+    print "median = %f" %np.median(data[:,z])
+    print "\n"
 ```
 
 ```{python}
@@ -704,36 +559,25 @@ plt.title("ASIC 2 histogram")
 save("./Analysis/Results/ASIC2_Histogram_multiindex",ext="png",close=True,verbose=True)
 ```
 
-```{python}
-for z in range (16):
-    a=np.shape((np.where(data[:,z]>= 10)))
-    prct=a[1]/128. *100
-    print "for index %i"%z 
-    print "%f working squid" %prct
-    print "median = %f" %np.median(data[:,z])
-    print "\n"
-```
+# Map for all SQUIDs
 
 ```{python}
-temps=b.hk['EXTERN_HK']
-temps.keys()
+fich=open("measures_P87.txt","w")
+for z in range(128):
+    a=np.argmax(data[z,:])
+    k=h.tes2pix(z+1)
+    fich.write("%d %i  \n" % ((k), a))
+    
+fich.close()
 ```
 
-```{python}
-b.max_bias
-```
+====================================================================================================================
 
-```{python}
-b.min_bias
-```
 
-```{python}
-temps['AVS47_1_CH2']
-```
+====================================================================================================================
 
-```{python}
-(4.146006+4.145855)/2.
-```
+
+# Test
 
 ```{python}
 
