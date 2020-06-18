@@ -5,7 +5,7 @@ jupyter:
       extension: .Rmd
       format_name: rmarkdown
       format_version: '1.1'
-      jupytext_version: 1.1.1
+      jupytext_version: 1.2.4
   kernelspec:
     display_name: Python 2
     language: python
@@ -110,8 +110,8 @@ def save(path, ext='png', close=True, verbose=True):
 -------------------------------
 
 ```{python}
-day = '2019-04-24'
-data_dir = '/home/guillaume/Documents/SQUID/'+day+'/'
+day = '2020-06-17'
+data_dir = '/home/guillaume/Documents/Detection_Chain/SQUID/Data/'+day+'/'+day+'/'
 #dirs = np.sort(glob.glob(data_dir+'*test_sw*'))
 dirs = np.sort(glob.glob(data_dir+'*bias*'))
 print (dirs)
@@ -121,15 +121,16 @@ labels = []
 for d in dirs:
     bla = str.split(d,'__')
     labels.append(bla[1])
-print labels
+print (labels)
 ```
 
 ```{python}
 thedir = dirs[3]
 print(thedir)
 AsicNum = 1
-b = qp()
+b = qubicfp()
 b.read_qubicstudio_dataset(thedir, asic=AsicNum)
+
 ```
 
 ## ASIC 1 & 2 feedback
@@ -138,6 +139,11 @@ b.read_qubicstudio_dataset(thedir, asic=AsicNum)
 -----------------------------------------
 
 ```{python}
+b.Rbias
+```
+
+```{python}
+Rbias=b.Rbias
 AsicNum = 1
 # Mutual inductance
 Min=1./10.4E-6
@@ -162,17 +168,21 @@ for z in range (128):
 # savitzky golay filter
         filt = sp.signal.savgol_filter(temp, 51, 3) 
         
+        
 ### plot parameters ### 
-        plt.plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],filt)
+        x=((Vbias[ind]/Rbias*Min)-(Vbias[ind]/Rbias*Min)[0])
+        y=-1*filt
+        plt.plot(x,y)
         plt.grid()
         plt.xlabel('Flux (in quantum of flux)')
         plt.ylabel('Tension ($\mu$V)')
         plt.title('ASIC1 (feedback), SQUID number %i'%(z+1))
         
-    save("./Analysis/ASIC1_QUBIC_feedback/ASIC1fb_%i"%(z+1),ext="png",close=True,verbose=True)
+    save("./Analysis"+day+"/ASIC1_QUBIC_feedback/ASIC1fb_%i"%(z+1),ext="png",close=True,verbose=True)
 ```
 
 ```{python}
+Rbias=b.Rbias
 AsicNum = 2
 # Mutual inductance
 Min=1./10.4E-6
@@ -199,13 +209,13 @@ for z in range (128):
     
     
 ### plot parameters ### 
-        plt.plot((Vbias[ind]/1.2*Min)-(Vbias[ind]/1.2*Min)[0],-1*filt)
+        plt.plot((Vbias[ind]/Rbias*Min)-(Vbias[ind]/Rbias*Min)[0],filt)
         plt.grid()
         plt.xlabel('Flux (in quantum of flux)')
         plt.ylabel('Tension ($\mu$V)')
         plt.title('ASIC2 (feedback), SQUID number %i'%(z+1))
         
-    save("./Analysis/ASIC2_QUBIC_feedback/ASIC2fb_%i"%(z+1),ext="png",close=True,verbose=True)
+    save("./Analysis"+day+"/ASIC2_QUBIC_feedback/ASIC2fb_%i"%(z+1),ext="png",close=True,verbose=True)
 ```
 
 ----------------------------------------------------------------
@@ -284,9 +294,9 @@ Vmax = np.nanmax(VsquidSG, axis=2)
 
 
 # Create variable , readable for the plot
-Vmoy2=np.asarray([(-Vmoy[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
-Vmin2=np.asarray([(-Vmin[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
-Vmax2=np.asarray([(-Vmax[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
+Vmoy2=np.asarray([(-Vmoy[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) 
+Vmin2=np.asarray([(-Vmin[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) 
+Vmax2=np.asarray([(-Vmax[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) 
 
 
 
@@ -294,8 +304,8 @@ Vmax2=np.asarray([(-Vmax[:,_]+Vmoy[0,_])*62.5/gain for _ in np.arange(128)]) *-1
 for z in range(128):
     nsq=z+1
     
-    plt.plot(I,Vmin2[z,:], label= "minimal Value" )
-    plt.plot(I,Vmax2[z,:], label= "maximal Value")
+    plt.plot(I,Vmin2[z,:], label= "maximal Value" )
+    plt.plot(I,Vmax2[z,:], label= "minimal Value")
     plt.plot(I,Vmoy2[z,:], label= "mean Value")
 
     plt.grid()
@@ -303,7 +313,7 @@ for z in range(128):
     plt.ylabel('Voltage ($\mu$V)')
     plt.title('ASIC1 SQUID number %i'%nsq) 
     plt.legend(loc='upper right', bbox_to_anchor=(0.25,1 ))
-    save("./Analysis/ASIC1_IV/ASIC1_IV_%i"%(z+1),ext="png",close=True,verbose=True)
+    save("./Analysis"+day+"/ASIC1_IV/ASIC1_IV_%i"%(z+1),ext="png",close=True,verbose=True)
 ```
 
 ## ASIC 2
@@ -362,7 +372,7 @@ for z in range (128) :
 
     nsq=z+1
     
-    plt.plot(I,Vmin2[z,:], label= "maximall Value" )
+    plt.plot(I,Vmin2[z,:], label= "maximal Value" )
     plt.plot(I,Vmax2[z,:], label= "minimal Value")
     plt.plot(I,Vmoy2[z,:], label= "mean Value")
 
@@ -373,7 +383,7 @@ for z in range (128) :
     plt.legend(loc='upper right', bbox_to_anchor=(0.25,1 ))
 
     
-    save("./Analysis/ASIC2_IV/ASIC2_IV_%i"%(z+1),ext="png",close=True,verbose=True)
+    save("./Analysis"+day+"/ASIC2_IV/ASIC2_IV_%i"%(z+1),ext="png",close=True,verbose=True)
 ```
 
 ## Histogram
@@ -428,7 +438,7 @@ plt.plot(data)
 plt.grid()
 plt.ylabel("PtP value")
 plt.xlabel("Number of SQUID")
-save("./Analysis/Results/ASIC1_data_plot1",ext="png",close=True,verbose=True)
+save("./Analysis"+day+"/Results/ASIC1_data_plot1",ext="png",close=True,verbose=True)
 ```
 
 ```{python}
@@ -436,7 +446,7 @@ plt.plot(invdata[:,:])
 plt.grid()
 plt.xlabel("Intensity (index of I)")
 plt.ylabel("SQUIDs")
-save("./Analysis/Results/ASIC1_data_plot2",ext="png",close=True,verbose=True)
+save("./Analysis"+day+"/Results/ASIC1_data_plot2",ext="png",close=True,verbose=True)
 ```
 
 ```{python}
@@ -446,7 +456,7 @@ plt.grid()
 plt.ylabel("Number of SQUIDs")
 plt.xlabel("Index of current")
 plt.title("Histogram of the optimum current for the SQUID response for ASIC 1")
-save("./Analysis/Results/ASIC1_Histogram",ext="png",close=True,verbose=True)
+save("./Analysis"+day+"/Results/ASIC1_Histogram",ext="png",close=True,verbose=True)
 ```
 
 ```{python}
@@ -458,17 +468,38 @@ plt.grid()
 plt.xlabel("Voltage ($\mu$V)")
 plt.ylabel('Number of SQUID')
 plt.title("ASIC 1 histogram")
-save("./Analysis/Results/ASIC1_Histogram_multiindex",ext="png",close=True,verbose=True)
+save("./Analysis"+day+"/Results/ASIC1_Histogram_multiindex",ext="png",close=True,verbose=True)
 ```
 
 ```{python}
+dat=np.empty(16)
+ind=np.empty(16)
 for z in range (16):
-    print "for index %i"%z 
+    print ("for index %i"%z) 
     a=np.shape((np.where(data[:,z]>= 10)))
     prct=a[1]/128. *100 
-    print "%f working squid" %prct
-    print "median = %f" %np.median(data[:,z])
-    print "\n"
+    print ("%f working squid" %prct)
+    print ("median = %f" %np.median(data[:,z]))
+    print ("\n")
+    dat[z]= prct
+    ind[z]= z
+
+plt.plot(ind,dat)
+plt.grid()
+plt.ylabel("Percentage working SQUID >10µV ($\mu$V)")
+plt.xlabel('Index')
+plt.title("Working SQUID by index")
+save("./Analysis"+day+"/Results/ASIC1_percentage",ext="png",close=True,verbose=True)
+```
+
+```{python}
+"""fich=open("measures_P87.txt","w")
+for z in range(128):
+    a=np.argmax(data[z,:])
+    k=tes2pix(z+1,1)
+    fich.write("%d %i  \n" % ((k), a))
+    
+fich.close()""" 
 ```
 
 ## ASIC 2
@@ -503,13 +534,24 @@ for i in range (16) :
 ```
 
 ```{python}
+dat=np.empty(16)
+ind=np.empty(16)
 for z in range (16):
     a=np.shape((np.where(data[:,z]>= 10)))
     prct=a[1]/128. *100
-    print "for index %i"%z 
-    print "%f working squid" %prct
-    print "median = %f" %np.median(data[:,z])
-    print "\n"
+    print ("for index %i"%z) 
+    print ("%f working squid" %prct)
+    print ("median = %f" %np.median(data[:,z]))
+    print ("\n")
+    dat[z]= prct
+    ind[z]= z
+
+plt.plot(ind,dat)
+plt.grid()
+plt.ylabel("Percentage working SQUID >10µV ($\mu$V)")
+plt.xlabel('Index')
+plt.title("Working SQUID by index")
+save("./Analysis"+day+"/Results/ASIC2_percentage",ext="png",close=True,verbose=True)
 ```
 
 ```{python}
@@ -517,15 +559,7 @@ plt.plot(data)
 plt.grid()
 plt.ylabel("PtP value")
 plt.xlabel("Number of SQUID")
-save("./Analysis/Results/ASIC2_data_plot1",ext="png",close=True,verbose=True)
-```
-
-```{python}
-
-```
-
-```{python}
-
+save("./Analysis"+day+"/Results/ASIC2_data_plot1",ext="png",close=True,verbose=True)
 ```
 
 ```{python}
@@ -533,7 +567,7 @@ plt.plot(invdata[:,:])
 plt.grid()
 plt.xlabel("Intensity (index of I)")
 plt.ylabel("SQUIDs")
-save("./Analysis/Results/ASIC2_data_plot2",ext="png",close=True,verbose=True)
+save("./Analysis"+day+"/Results/ASIC2_data_plot2",ext="png",close=True,verbose=True)
 ```
 
 ```{python}
@@ -543,41 +577,78 @@ plt.grid()
 plt.ylabel("Number of SQUIDs")
 plt.xlabel("Index of current")
 plt.title("Histogram of the optimum current for the SQUID response for ASIC 2")
-save("./Analysis/Results/ASIC2_Histogram",ext="png",close=True,verbose=True)
+save("./Analysis"+day+"/Results/ASIC2_Histogram",ext="png",close=True,verbose=True)
 ```
 
 ```{python}
-#plt.hist(data[:,9],range=[0,30], bins=30, label="9")
-plt.hist(data[:,10],range=[0,30], bins=30, alpha = 0.1, color= 'b',label="index 10")
+#plt.hist(data[:,9],range=[0,30], bins=30, label="9"11
+plt.hist(data[:,11],range=[0,30], bins=30, alpha = 0.1, color= 'b',label="index 11")
 plt.hist(data[:,12],range=[0,30], bins=30, alpha = 0.3, color= 'r' ,label="index 12")
-plt.hist(data[:,11],range=[0,30], bins=30, alpha = 0.5, color= 'g', label="index 11")
+plt.hist(data[:,13],range=[0,30], bins=30, alpha = 0.5, color= 'g', label="index 13")
 plt.legend()
 plt.grid()
 plt.xlabel("Voltage ($\mu$V)")
 plt.ylabel('Number of SQUID')
 plt.title("ASIC 2 histogram")
-save("./Analysis/Results/ASIC2_Histogram_multiindex",ext="png",close=True,verbose=True)
+save("./Analysis"+day+"/Results/ASIC2_Histogram_multiindex",ext="png",close=True,verbose=True)
 ```
 
 # Map for all SQUIDs
 
 ```{python}
-fich=open("measures_P87.txt","w")
+fich=open("measures_P87","a")
 for z in range(128):
     a=np.argmax(data[z,:])
-    k=h.tes2pix(z+1)
+    k=tes2pix(z+1,2)
     fich.write("%d %i  \n" % ((k), a))
     
 fich.close()
 ```
 
+```{python}
+x = data[55,:]
+a=np.argmax(x)
+tes2pix(56,1)
+
+print a
+```
+
 ====================================================================================================================
 
+```{python}
+plt.imshow(data)
+plt.colorbar()
+```
 
 ====================================================================================================================
 
 
 # Test
+
+```{python}
+tab_mesures = np.genfromtxt("measures_P87.txt", delimiter = "", dtype = float)
+```
+
+```{python}
+print tab_mesures[:,1]
+```
+
+```{python}
+plt.hist(tab_mesures[:,1],range=[8,13], bins=5, color= 'g')
+plt.grid()
+plt.ylabel("Number of SQUIDs")
+plt.xlabel("Index of current")
+plt.title("Histogram of the optimum current for the SQUID response")
+save("./Analysis"+day+"/Results/Histogram_allS",ext="png",close=True,verbose=True)
+```
+
+```{python}
+b.Rbias
+```
+
+```{python}
+
+```
 
 ```{python}
 
